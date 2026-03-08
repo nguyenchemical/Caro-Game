@@ -2,126 +2,204 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Caro AI - Elite Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Caro AI - Ultimate Edition</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%230f172a%22/><text y=%22.9em%22 font-size=%2280%22 x=%225%22 fill=%22%2338bdf8%22>X</text><text y=%22.9em%22 font-size=%2260%22 x=%2250%22 fill=%22%23ef4444%22>O</text></svg>">
-
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
         :root {
             --bg: #0b0f1a;
             --panel: rgba(23, 32, 53, 0.9);
-            --accent: #00d2ff;
-            --player: #00ff88;
-            --ai: #ff416c;
-            --cell: #16213e;
-            --text: #e2e8f0;
+            --text: #f8fafc;
+            --cell-bg: #1e293b;
+            --accent: #0ea5e9;
+            --player: #22c55e;
+            --ai: #ef4444;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="light"] {
+            --bg: #f1f5f9;
+            --panel: rgba(255, 255, 255, 0.9);
+            --text: #1e293b;
+            --cell-bg: #ffffff;
+            --accent: #0284c7;
+            --player: #16a34a;
+            --ai: #dc2626;
+            --border: rgba(0, 0, 0, 0.1);
         }
 
         body {
-            font-family: 'Inter', -apple-system, system-ui, sans-serif;
-            background: radial-gradient(circle at center, #1a2a44 0%, #0b0f1a 100%);
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
             color: var(--text);
             margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             min-height: 100vh;
+            transition: background 0.3s ease;
+            touch-action: manipulation;
         }
 
-        .container { text-align: center; padding: 20px; z-index: 10; }
-        h1 { font-size: 2.2rem; margin: 10px 0; background: linear-gradient(to right, var(--player), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 3px; }
+        .header-nav {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .theme-toggle {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            color: var(--text);
+            font-size: 0.9rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
 
         .stats-bar {
-            display: flex; justify-content: space-around; background: var(--panel);
-            padding: 15px; border-radius: 20px; margin-bottom: 20px;
-            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            width: 90%;
+            max-width: 500px;
+            background: var(--panel);
+            padding: 15px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border);
         }
 
-        .stat-box { display: flex; flex-direction: column; }
-        .label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
-        .value { font-size: 1.2rem; font-weight: 800; color: var(--accent); }
+        .stat-box { text-align: center; }
+        .label { font-size: 0.7rem; opacity: 0.7; text-transform: uppercase; font-weight: bold; }
+        .value { font-size: 1.3rem; font-weight: 800; color: var(--accent); }
 
-        #status { margin-bottom: 10px; font-weight: 500; min-height: 24px; color: var(--player); }
+        #status { font-weight: 600; margin-bottom: 15px; color: var(--player); }
+
+        /* Board tối ưu cho mọi màn hình */
+        .board-wrapper {
+            width: 95vw;
+            max-width: 550px; /* Tăng kích thước tối đa cho PC/Tablet */
+            aspect-ratio: 1/1;
+            margin: 0 auto;
+        }
 
         #board {
-            display: grid; grid-template-columns: repeat(15, 30px); grid-template-rows: repeat(15, 30px);
-            gap: 2px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 8px;
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            gap: 2px;
+            background: var(--border);
+            padding: 4px;
+            border-radius: 12px;
+            height: 100%;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
         }
 
         .cell {
-            width: 30px; height: 30px; background: var(--cell);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 16px; font-weight: bold; cursor: pointer;
-            transition: 0.2s; border-radius: 3px;
+            background: var(--cell-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(12px, 3vw, 22px); /* Tự động chỉnh size chữ */
+            font-weight: 900;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.1s ease;
         }
 
-        .cell:hover { background: #1e2d4d; transform: scale(1.05); box-shadow: 0 0 10px var(--accent); }
+        .cell:active { transform: scale(0.9); }
         .cell.x { color: var(--player); }
         .cell.o { color: var(--ai); }
 
-        .btn-reset {
-            margin-top: 25px; padding: 10px 35px;
-            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
-            border: none; border-radius: 50px; color: white;
-            font-weight: bold; cursor: pointer; transition: 0.3s;
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin: 25px 0;
         }
-        .btn-reset:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,210,255,0.4); }
 
-        .win-line { background: var(--accent) !important; animation: pulse 0.5s infinite; }
-        @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-2px); }
+
+        .win-anim { 
+            background: var(--accent) !important; 
+            color: white !important; 
+            animation: flash 0.5s infinite; 
+        }
+
+        @keyframes flash { 50% { opacity: 0.5; } }
     </style>
 </head>
-<body>
+<body data-theme="dark">
 
-    <div class="container">
-        <h1>CARO AI ELITE</h1>
-        
-        <div class="stats-bar">
-            <div class="stat-box">
-                <span class="label">Cấp độ AI</span>
-                <span id="ai-level" class="value">1</span>
-            </div>
-            <div class="stat-box">
-                <span class="label">Bạn Thắng</span>
-                <span id="win-count" class="value">0</span>
-            </div>
+    <div class="header-nav">
+        <h2 style="margin:0; font-size: 1.2rem; letter-spacing: 1px;">CARO <span style="color:var(--accent)">ULTIMATE</span></h2>
+        <button class="theme-toggle" onclick="toggleTheme()">🌓 Chế độ</button>
+    </div>
+    
+    <div class="stats-bar">
+        <div class="stat-box">
+            <span class="label">Độ khó</span>
+            <span id="ai-level" class="value">1</span>
         </div>
+        <div class="stat-box">
+            <span class="label">Thắng</span>
+            <span id="win-count" class="value">0</span>
+        </div>
+    </div>
 
-        <div id="status">Sẵn sàng? Chơi thôi!</div>
+    <div id="status">Lượt của bạn (X)</div>
 
+    <div class="board-wrapper">
         <div id="board"></div>
+    </div>
 
-        <button class="btn-reset" onclick="initGame()">Ván Mới</button>
+    <div class="btn-group">
+        <button class="btn btn-primary" onclick="initGame()">Ván Mới</button>
     </div>
 
     <script>
         const SIZE = 15;
         let board = [], isGameOver = false, wins = 0, level = 1;
-
-        // Âm thanh giả lập (Oscillator)
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playSound(freq, type, duration) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(); osc.stop(audioCtx.currentTime + duration);
+
+        function toggleTheme() {
+            const body = document.body;
+            const current = body.getAttribute('data-theme');
+            body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+        }
+
+        function playSound(f, t, d) {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.type = t; o.frequency.value = f;
+            g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            o.connect(g); g.connect(audioCtx.destination);
+            o.start(); o.stop(audioCtx.currentTime + d);
         }
 
         function initGame() {
             board = Array(SIZE).fill().map(() => Array(SIZE).fill(''));
             isGameOver = false;
-            document.getElementById('status').innerText = "Lượt của bạn (X)";
-            renderBoard();
-        }
-
-        function renderBoard() {
+            document.getElementById('status').innerText = "Đến lượt bạn (X)";
             const boardEl = document.getElementById('board');
             boardEl.innerHTML = '';
             for (let r = 0; r < SIZE; r++) {
@@ -139,26 +217,26 @@
             if (board[r][c].val !== '' || isGameOver) return;
             
             makeMove(r, c, 'X');
-            playSound(440, 'sine', 0.1); // Tiếng Click
+            playSound(600, 'sine', 0.1);
 
             if (checkWin(r, c, 'X')) {
                 victory();
                 return;
             }
 
-            isGameOver = true; // Khóa bàn cờ trong lúc AI tính
+            isGameOver = true;
+            document.getElementById('status').innerText = "AI đang suy nghĩ...";
             setTimeout(() => {
-                const move = findAI(level);
+                const move = findAI();
                 makeMove(move.r, move.c, 'O');
-                playSound(330, 'sine', 0.1);
+                playSound(400, 'sine', 0.1);
                 if (checkWin(move.r, move.c, 'O')) {
-                    document.getElementById('status').innerText = "AI đã thắng!";
-                    isGameOver = true;
+                    document.getElementById('status').innerText = "AI đã chiến thắng!";
                 } else {
                     isGameOver = false;
-                    document.getElementById('status').innerText = "Lượt của bạn";
+                    document.getElementById('status').innerText = "Đến lượt bạn (X)";
                 }
-            }, 400);
+            }, 500);
         }
 
         function makeMove(r, c, p) {
@@ -168,45 +246,39 @@
         }
 
         function victory() {
-            isGameOver = true; wins++; level++;
+            wins++; level++;
             document.getElementById('win-count').innerText = wins;
             document.getElementById('ai-level').innerText = level;
-            document.getElementById('status').innerText = "THẮNG RỒI! ĐỘ KHÓ TĂNG!";
-            
-            // Pháo hoa
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#00ff88', '#00d2ff', '#ffffff'] });
-            
-            // Âm thanh thắng
-            playSound(523.25, 'square', 0.2);
-            setTimeout(() => playSound(659.25, 'square', 0.2), 150);
-            setTimeout(() => playSound(783.99, 'square', 0.4), 300);
+            document.getElementById('status').innerText = "BẠN THẮNG QUÁ ĐỈNH!";
+            confetti({ particleCount: 150, spread: 80, origin: { y: 0.7 } });
+            playSound(523, 'square', 0.2);
+            setTimeout(() => playSound(659, 'square', 0.3), 150);
         }
 
-        // AI Logic đơn giản nhưng hiệu quả
-        function findAI(lvl) {
+        function findAI() {
             let best = -1, move = {r:7, c:7};
-            const defWeight = 1.2 + (lvl * 0.4);
+            const def = 1.2 + (level * 0.5);
             for(let r=0; r<SIZE; r++) {
                 for(let c=0; c<SIZE; c++) {
                     if(board[r][c].val === '') {
-                        let score = scoreAt(r,c,'O') + (scoreAt(r,c,'X') * defWeight);
-                        if(score > best) { best = score; move = {r,c}; }
+                        let s = score(r,c,'O') + (score(r,c,'X') * def);
+                        if(s > best) { best = s; move = {r,c}; }
                     }
                 }
             }
             return move;
         }
 
-        function scoreAt(r,c,p) {
-            let s = 0; const dirs = [[1,0],[0,1],[1,1],[1,-1]];
-            for(let [dr,dc] of dirs) {
-                let cnt = 1;
-                cnt += count(r,c,dr,dc,p) + count(r,c,-dr,-dc,p);
-                if(cnt >= 5) s += 10000;
-                else if(cnt === 4) s += 1000;
-                else if(cnt === 3) s += 100;
+        function score(r,c,p) {
+            let total = 0;
+            const ds = [[1,0],[0,1],[1,1],[1,-1]];
+            for(let [dr,dc] of ds) {
+                let cnt = 1 + count(r,c,dr,dc,p) + count(r,c,-dr,-dc,p);
+                if(cnt >= 5) total += 10000;
+                else if(cnt === 4) total += 1000;
+                else if(cnt === 3) total += 100;
             }
-            return s;
+            return total;
         }
 
         function count(r,c,dr,dc,p) {
@@ -218,15 +290,16 @@
         }
 
         function checkWin(r, c, p) {
-            const dirs = [[1,0],[0,1],[1,1],[1,-1]];
-            for(let [dr,dc] of dirs) {
-                let cells = [[r,c]];
+            const ds = [[1,0],[0,1],[1,1],[1,-1]];
+            for(let [dr,dc] of ds) {
+                let winPath = [[r,c]];
                 let nr = r+dr, nc = c+dc;
-                while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && board[nr][nc].val === p) { cells.push([nr,nc]); nr += dr; nc += dc; }
+                while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && board[nr][nc].val === p) { winPath.push([nr,nc]); nr+=dr; nc+=dc; }
                 nr = r-dr; nc = c-dc;
-                while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && board[nr][nc].val === p) { cells.push([nr,nc]); nr -= dr; nc -= dc; }
-                if(cells.length >= 5) {
-                    cells.forEach(pos => board[pos[0]][pos[1]].el.classList.add('win-line'));
+                while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && board[nr][nc].val === p) { winPath.push([nr,nc]); nr-=dr; nc-=dc; }
+                if(winPath.length >= 5) {
+                    winPath.forEach(pos => board[pos[0]][pos[1]].el.classList.add('win-anim'));
+                    isGameOver = true;
                     return true;
                 }
             }
