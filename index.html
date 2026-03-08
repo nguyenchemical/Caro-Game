@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caro AI - Elite Edition</title>
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%230f172a%22/><text y=%22.9em%22 font-size=%2280%22 x=%225%22 fill=%22%2338bdf8%22>X</text><text y=%22.9em%22 font-size=%2260%22 x=%2250%22 fill=%22%23ef4444%22>O</text></svg>">
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #0b0f1a;
+            --panel: rgba(23, 32, 53, 0.9);
+            --accent: #00d2ff;
+            --player: #00ff88;
+            --ai: #ff416c;
+            --cell: #16213e;
+            --text: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+            background: radial-gradient(circle at center, #1a2a44 0%, #0b0f1a 100%);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container { text-align: center; padding: 20px; z-index: 10; }
+        h1 { font-size: 2.2rem; margin: 10px 0; background: linear-gradient(to right, var(--player), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 3px; }
+
+        .stats-bar {
+            display: flex; justify-content: space-around; background: var(--panel);
+            padding: 15px; border-radius: 20px; margin-bottom: 20px;
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .stat-box { display: flex; flex-direction: column; }
+        .label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
+        .value { font-size: 1.2rem; font-weight: 800; color: var(--accent); }
+
+        #status { margin-bottom: 10px; font-weight: 500; min-height: 24px; color: var(--player); }
+
+        #board {
+            display: grid; grid-template-columns: repeat(15, 30px); grid-template-rows: repeat(15, 30px);
+            gap: 2px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 8px;
+        }
+
+        .cell {
+            width: 30px; height: 30px; background: var(--cell);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; font-weight: bold; cursor: pointer;
+            transition: 0.2s; border-radius: 3px;
+        }
+
+        .cell:hover { background: #1e2d4d; transform: scale(1.05); box-shadow: 0 0 10px var(--accent); }
+        .cell.x { color: var(--player); }
+        .cell.o { color: var(--ai); }
+
+        .btn-reset {
+            margin-top: 25px; padding: 10px 35px;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            border: none; border-radius: 50px; color: white;
+            font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        .btn-reset:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,210,255,0.4); }
+
+        .win-line { background: var(--accent) !important; animation: pulse 0.5s infinite; }
+        @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>CARO AI ELITE</h1>
+        
+        <div class="stats-bar">
+            <div class="stat-box">
+                <span class="label">Cấp độ AI</span>
+                <span id="ai-level" class="value">1</span>
+            </div>
+            <div class="stat-box">
+                <span class="label">Bạn Thắng</span>
+                <span id="win-count" class="value">0</span>
+            </div>
+        </div>
+
+        <div id="status">Sẵn sàng? Chơi thôi!</div>
+
+        <div id="board"></div>
+
+        <button class="btn-reset" onclick="initGame()">Ván Mới</button>
+    </div>
+
+    <script>
+        const SIZE = 15;
+        let board = [], isGameOver = false, wins = 0, level = 1;
+
+        // Âm thanh giả lập (Oscillator)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(freq, type, duration) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function initGame() {
+            board = Array(SIZE).fill().map(() => Array(SIZE).fill(''));
+            isGameOver = false;
+            document.getElementById('status').innerText = "Lượt của bạn (X)";
+            renderBoard();
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.onclick = () => handleMove(r, c);
+                    boardEl.appendChild(cell);
+                    board[r][c] = { val: '', el: cell };
+                }
+            }
+        }
+
+        function handleMove(r, c) {
+            if (board[r][c].val !== '' || isGameOver) return;
+            
+            makeMove(r, c, 'X');
+            playSound(440, 'sine', 0.1); // Tiếng Click
+
+            if (checkWin(r, c, 'X')) {
+                victory();
+                return;
+            }
+
+            isGameOver = true; // Khóa bàn cờ trong lúc AI tính
+            setTimeout(() => {
+                const move = findAI(level);
+                makeMove(move.r, move.c, 'O');
+                playSound(330, 'sine', 0.1);
+                if (checkWin(move.r, move.c, 'O')) {
+                    document.getElementById('status').innerText = "AI đã thắng!";
+                    isGameOver = true;
+                } else {
+                    isGameOver = false;
+                    document.getElementById('status').innerText = "Lượt của bạn";
+                }
+            }, 400);
+        }
+
+        function makeMove(r, c, p) {
+            board[r][c].val = p;
+            board[r][c].el.innerText = p;
+            board[r][c].el.classList.add(p.toLowerCase());
+        }
+
+        function victory() {
+            isGameOver = true; wins++; level++;
+            document.getElementById('win-count').innerText = wins;
+            document.getElementById('ai-level').innerText = level;
+            document.getElementById('status').innerText = "THẮNG RỒI! ĐỘ KHÓ TĂNG!";
+            
+            // Pháo hoa
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#00ff88', '#00d2ff', '#ffffff'] });
+            
+            // Âm thanh thắng
+            playSound(523.25, 'square', 0.2);
+            setTimeout(() => playSound(659.25, 'square', 0.2), 150);
+            setTimeout(() => playSound(783.99, 'square', 0.4), 300);
+        }
+
+        // AI Logic đơn giản nhưng hiệu quả
+        function findAI(lvl) {
+            let best = -1, move = {r:7, c:7};
+            const defWeight = 1.2 + (lvl * 0.4);
+            for(let r=0; r<SIZE; r++) {
+                for(let c=0; c<SIZE; c++) {
+                    if(board[r][c].val === '') {
+                        let score = scoreAt(r,c,'O') + (scoreAt(r,c,'X') * defWeight);
+                        if(score > best) { best = score; move = {r,c}; }
+                    }
+                }
+            }
+            return move;
+        }
+
+        function scoreAt(r,c,p) {
+            let s = 0; const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+            for(let [dr,dc] of dirs) {
+                let cnt = 1;
+                cnt += count(r,c,dr,dc,p) + count(r,c,-dr,-dc,p);
+                if(cnt >= 5) s += 10000;
+                else if(cnt === 4) s += 1000;
+                else if(cnt === 3) s += 100;
+            }
+            return s;
+        }
+
+        function count(r,c,dr,dc,p) {
+            let n = 0, nr = r+dr, nc = c+dc;
+            while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && board[nr][nc].val === p) {
+                n++; nr += dr; nc += dc;
+            }
+            return n;
+        }
+
+        function checkWin(r, c, p) {
+            const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+            for(let [dr,dc] of dirs) {
+                let cells = [[r,c]];
+                let nr = r+dr, nc = c+dc;
+                while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && board[nr][nc].val === p) { cells.push([nr,nc]); nr += dr; nc += dc; }
+                nr = r-dr; nc = c-dc;
+                while(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && board[nr][nc].val === p) { cells.push([nr,nc]); nr -= dr; nc -= dc; }
+                if(cells.length >= 5) {
+                    cells.forEach(pos => board[pos[0]][pos[1]].el.classList.add('win-line'));
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
