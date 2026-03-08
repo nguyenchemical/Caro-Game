@@ -3,211 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Caro AI - Master Edition</title>
+    <title>Cờ Caro AI - Phiên bản Cao cấp</title>
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%230f172a%22/><text y=%22.9em%22 font-size=%2280%22 x=%225%22 fill=%22%2338bdf8%22>X</text><text y=%22.9em%22 font-size=%2260%22 x=%2250%22 fill=%22%23ef4444%22>O</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
         :root {
-            --bg: #0b1120; --panel: rgba(30, 41, 59, 0.8); --text: #f1f5f9;
-            --cell: #1e293b; --accent: #38bdf8; --player: #4ade80; --ai: #f87171;
-            --border: rgba(255,255,255,0.1);
+            --bg: #0f172a; 
+            --panel: rgba(30, 41, 59, 0.9); 
+            --text: #f1f5f9;
+            --cell: #1e293b; 
+            --cell-hover: #334155;
+            --accent: #38bdf8; 
+            --player: #4ade80; 
+            --ai: #f87171;
+            --border: rgba(255,255,255,0.15); /* Viền ô cờ rõ hơn ở mode tối */
         }
         [data-theme="light"] {
-            --bg: #f8fafc; --panel: rgba(255,255,255,0.9); --text: #0f172a;
-            --cell: #ffffff; --accent: #0284c7; --player: #16a34a; --ai: #dc2626;
+            --bg: #f8fafc; 
+            --panel: rgba(255,255,255,0.9); 
+            --text: #0f172a;
+            --cell: #ffffff; 
+            --cell-hover: #f1f5f9;
+            --accent: #0284c7; 
+            --player: #16a34a; 
+            --ai: #dc2626;
             --border: rgba(0,0,0,0.1);
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text);
+            font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text);
             margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh;
-            transition: 0.3s; touch-action: manipulation;
+            transition: background 0.3s ease; touch-action: manipulation;
         }
 
-        .nav { width: 100%; max-width: 500px; display: flex; justify-content: space-between; padding: 15px; box-sizing: border-box; }
+        .thanh-dieu-huong { width: 100%; max-width: 500px; display: flex; justify-content: space-between; padding: 15px; box-sizing: border-box; }
         
-        .stats {
+        .chi-so {
             display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 90%; max-width: 500px;
             background: var(--panel); padding: 15px; border-radius: 20px; border: 1px solid var(--border);
             box-shadow: 0 10px 25px rgba(0,0,0,0.2); margin-bottom: 10px;
         }
-        .stat-item { text-align: center; }
-        .val { font-size: 1.4rem; font-weight: 800; color: var(--accent); display: block; }
-        .lab { font-size: 0.7rem; opacity: 0.6; text-transform: uppercase; font-weight: bold; }
+        .o-chi-so { text-align: center; }
+        .gia-tri { font-size: 1.4rem; font-weight: 800; color: var(--accent); display: block; }
+        .nhan { font-size: 0.7rem; opacity: 0.7; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
 
-        .leaderboard { font-size: 0.8rem; margin-bottom: 15px; color: var(--accent); font-weight: bold; }
+        .ky-luc { font-size: 0.85rem; margin-bottom: 15px; color: var(--accent); font-weight: 600; background: rgba(56, 189, 248, 0.1); padding: 5px 15px; border-radius: 20px; }
 
-        .board-container { width: 96vw; max-width: 480px; aspect-ratio: 1/1; }
-        #board {
+        .khung-ban-co { 
+            width: 96vw; max-width: 480px; aspect-ratio: 1/1; 
+            padding: 4px; background: var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        #ban-co {
             display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr);
-            gap: 2px; background: var(--border); padding: 5px; border-radius: 12px; height: 100%;
+            gap: 2px; height: 100%;
         }
 
-        .cell {
+        .o-co {
             background: var(--cell); display: flex; align-items: center; justify-content: center;
-            font-size: clamp(14px, 4vw, 24px); font-weight: 900; cursor: pointer; border-radius: 3px;
+            font-size: clamp(14px, 4.5vw, 26px); font-weight: 900; cursor: pointer; border-radius: 3px;
+            border: 1px solid var(--border); /* Đây là chìa khóa để thấy ô trong Dark Mode */
+            transition: all 0.1s;
         }
-        .cell.x { color: var(--player); }
-        .cell.o { color: var(--ai); }
+        .o-co:hover { background: var(--cell-hover); }
+        .o-co.x { color: var(--player); text-shadow: 0 0 8px rgba(74, 222, 128, 0.3); }
+        .o-co.o { color: var(--ai); text-shadow: 0 0 8px rgba(248, 113, 113, 0.3); }
 
-        .controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 20px; padding-bottom: 30px; }
-        .btn {
-            padding: 10px 20px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;
-            transition: 0.2s; display: flex; align-items: center; gap: 5px; font-size: 0.9rem;
+        .bang-dieu-khien { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 20px; padding-bottom: 30px; }
+        .nut {
+            padding: 12px 24px; border: none; border-radius: 15px; font-weight: bold; cursor: pointer;
+            transition: 0.2s; display: flex; align-items: center; gap: 8px; font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        .btn-main { background: var(--accent); color: white; }
-        .btn-sec { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
-        .btn-danger { background: #7f1d1d; color: white; }
-        .btn:active { transform: scale(0.95); }
+        .nut-chinh { background: var(--accent); color: white; }
+        .nut-phu { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+        .nut-xoa { background: #991b1b; color: white; }
+        .nut:active { transform: scale(0.95); }
 
-        .win-glow { background: var(--player) !important; color: white !important; animation: blink 0.5s infinite alternate; }
-        @keyframes blink { from { opacity: 0.6; } to { opacity: 1; } }
+        .thang-cuoc { background: var(--player) !important; color: white !important; animation: nhap-nhay 0.5s infinite alternate; }
+        @keyframes nhap-nhay { from { opacity: 0.7; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body data-theme="dark">
 
-    <div class="nav">
-        <div style="font-weight: 900; letter-spacing: 1px;">CARO <span style="color:var(--accent)">MASTER</span></div>
-        <button class="btn btn-sec" style="padding: 5px 12px;" onclick="toggleTheme()">🌓</button>
+    <div class="thanh-dieu-huong">
+        <div style="font-weight: 900; letter-spacing: 1px; font-size: 1.2rem;">CARO <span style="color:var(--accent)">MASTER</span></div>
+        <button class="nut nut-phu" style="padding: 6px 12px;" onclick="doiGiaoDien()">🌓 Đổi màu</button>
     </div>
     
-    <div class="stats">
-        <div class="stat-item"><span class="lab">Cấp độ hiện tại</span><span id="ai-level" class="val">1</span></div>
-        <div class="stat-item"><span class="lab">Số trận thắng</span><span id="win-count" class="val">0</span></div>
+    <div class="chi-so">
+        <div class="o-chi-so"><span class="nhan">Độ khó AI</span><span id="cap-do-ai" class="gia-tri">1</span></div>
+        <div class="o-chi-so"><span class="nhan">Số trận thắng</span><span id="so-tran-thang" class="gia-tri">0</span></div>
     </div>
 
-    <div id="best-record" class="leaderboard">Kỷ lục: Level 1 - 0 Win</div>
+    <div id="ky-luc-cao-nhat" class="ky-luc">Kỷ lục: Cấp 1 - 0 Trận</div>
 
-    <div id="status" style="margin-bottom: 10px; font-size: 0.9rem; font-weight: bold; color: var(--player);">Lượt của bạn</div>
+    <div id="trang-thai" style="margin-bottom: 12px; font-size: 1rem; font-weight: bold; color: var(--player);">Sẵn sàng chơi!</div>
 
-    <div class="board-container">
-        <div id="board"></div>
+    <div class="khung-ban-co">
+        <div id="ban-co"></div>
     </div>
 
-    <div class="controls">
-        <button class="btn btn-sec" onclick="undo()">↩ Undo</button>
-        <button class="btn btn-main" onclick="init()">🎮 Ván Mới</button>
-        <button class="btn btn-danger" onclick="resetAll()">🔥 Reset All</button>
+    <div class="bang-dieu-khien">
+        <button class="nut nut-phu" onclick="hoanTac()">↩ Đi lại</button>
+        <button class="nut nut-chinh" onclick="khoiTao()">🎮 Ván Mới</button>
+        <button class="nut nut-xoa" onclick="lamMoiTatCa()">🔥 Xóa Kỷ Lục</button>
     </div>
 
     <script>
-        const S = 15; let board = [], over = false, wins = 0, level = 1, history = [];
-        const audio = new (window.AudioContext || window.webkitAudioContext)();
+        const CO_BAN_CO = 15; let du lieu_ban_co = [], ket_thuc = false, thang = 0, cap_do = 1, lich_su = [];
+        const am_thanh = new (window.AudioContext || window.webkitAudioContext)();
 
-        function toggleTheme() { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); }
-        function beep(f, d) { 
-            let o = audio.createOscillator(), g = audio.createGain();
+        function doiGiaoDien() { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); }
+        function phatAm(f, d) { 
+            let o = am_thanh.createOscillator(), g = am_thanh.createGain();
             o.frequency.value = f; g.gain.value = 0.05;
-            o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime + d);
+            o.connect(g); g.connect(am_thanh.destination); o.start(); o.stop(am_thanh.currentTime + d);
         }
 
-        function loadRecord() {
-            const bestL = localStorage.getItem('bestL') || 1;
-            const bestW = localStorage.getItem('bestW') || 0;
-            document.getElementById('best-record').innerText = `Kỷ lục cao nhất: Level ${bestL} — ${bestW} Win`;
+        function taiKyLuc() {
+            const klL = localStorage.getItem('bestL') || 1;
+            const klW = localStorage.getItem('bestW') || 0;
+            document.getElementById('ky-luc-cao-nhat').innerText = `🏆 Kỷ lục cao nhất: Cấp ${klL} — Thắng ${klW} trận`;
         }
 
-        function saveRecord() {
-            const bestL = localStorage.getItem('bestL') || 0;
-            if (level > bestL) { localStorage.setItem('bestL', level); localStorage.setItem('bestW', wins); }
-            loadRecord();
+        function luuKyLuc() {
+            const klL = localStorage.getItem('bestL') || 0;
+            if (cap_do > klL) { localStorage.setItem('bestL', cap_do); localStorage.setItem('bestW', thang); }
+            taiKyLuc();
         }
 
-        function resetAll() {
-            if(confirm("Bạn muốn xóa sạch kỷ lục và bắt đầu lại từ Level 1?")) {
-                localStorage.clear(); wins = 0; level = 1; updateUI(); init(); loadRecord();
+        function lamMoiTatCa() {
+            if(confirm("Bạn có chắc chắn muốn xóa toàn bộ kỷ lục để chơi lại từ đầu không?")) {
+                localStorage.clear(); thang = 0; cap_do = 1; capNhatGiaoDien(); khoiTao(); taiKyLuc();
             }
         }
 
-        function init() {
-            board = Array(S).fill().map(() => Array(S).fill(''));
-            history = []; over = false; document.getElementById('status').innerText = "Lượt của bạn (X)";
-            const bEl = document.getElementById('board'); bEl.innerHTML = '';
-            for (let r = 0; r < S; r++) {
-                for (let c = 0; c < S; c++) {
-                    const el = document.createElement('div'); el.className = 'cell';
-                    el.onclick = () => play(r, c); bEl.appendChild(el);
-                    board[r][c] = { v: '', el: el };
+        function khoiTao() {
+            du lieu_ban_co = Array(CO_BAN_CO).fill().map(() => Array(CO_BAN_CO).fill(''));
+            lich_su = []; ket_thuc = false; document.getElementById('trang-thai').innerText = "Đến lượt bạn (X)";
+            document.getElementById('trang-thai').style.color = "var(--player)";
+            const vung_ban_co = document.getElementById('ban-co'); vung_ban_co.innerHTML = '';
+            for (let r = 0; r < CO_BAN_CO; r++) {
+                for (let c = 0; c < CO_BAN_CO; c++) {
+                    const o = document.createElement('div'); o.className = 'o-co';
+                    o.onclick = () => nguoiChoiDanh(r, c); vung_ban_co.appendChild(o);
+                    du lieu_ban_co[r][c] = { v: '', el: o };
                 }
             }
         }
 
-        function play(r, c) {
-            if (board[r][c].v !== '' || over) return;
-            set(r, c, 'X'); history.push({r, c, p: 'X'}); beep(600, 0.05);
-            if (check(r, c, 'X')) { win(); return; }
+        function nguoiChoiDanh(r, c) {
+            if (du lieu_ban_co[r][c].v !== '' || ket_thuc) return;
+            datQuan(r, c, 'X'); lich_su.push({r, c, p: 'X'}); phatAm(600, 0.05);
+            if (kiemTraThang(r, c, 'X')) { xuLyThang(); return; }
             
-            over = true; document.getElementById('status').innerText = "AI đang suy nghĩ...";
+            ket_thuc = true; document.getElementById('trang-thai').innerText = "AI đang suy nghĩ...";
+            document.getElementById('trang-thai').style.color = "var(--ai)";
             setTimeout(() => {
-                const m = findAI(); set(m.r, m.c, 'O'); history.push({r: m.r, c: m.c, p: 'O'}); beep(400, 0.05);
-                if (check(m.r, m.c, 'O')) { document.getElementById('status').innerText = "AI Thắng!"; }
-                else { over = false; document.getElementById('status').innerText = "Lượt của bạn (X)"; }
-            }, 400);
+                const m = timNuocDiAI(); datQuan(m.r, m.c, 'O'); lich_su.push({r: m.r, c: m.c, p: 'O'}); phatAm(400, 0.05);
+                if (kiemTraThang(m.r, m.c, 'O')) { 
+                    document.getElementById('trang-thai').innerText = "AI đã thắng ván này!"; 
+                } else { 
+                    ket_thuc = false; document.getElementById('trang-thai').innerText = "Đến lượt bạn (X)"; 
+                    document.getElementById('trang-thai').style.color = "var(--player)";
+                }
+            }, 450);
         }
 
-        function set(r, c, p) { board[r][c].v = p; board[r][c].el.innerText = p; board[r][c].el.classList.add(p.toLowerCase()); }
+        function datQuan(r, c, p) { 
+            du lieu_ban_co[r][c].v = p; 
+            du lieu_ban_co[r][c].el.innerText = p; 
+            du lieu_ban_co[r][c].el.classList.add(p.toLowerCase()); 
+        }
 
-        function undo() {
-            if (history.length < 2 || over) return;
+        function hoanTac() {
+            if (lich_su.length < 2 || ket_thuc) return;
             for(let i=0; i<2; i++) {
-                let l = history.pop(); board[l.r][l.c].v = ''; board[l.r][l.c].el.innerText = ''; board[l.r][l.c].el.classList.remove('x','o');
+                let l = lich_su.pop(); du lieu_ban_co[l.r][l.c].v = ''; 
+                du lieu_ban_co[l.r][l.c].el.innerText = ''; 
+                du lieu_ban_co[l.r][l.c].el.classList.remove('x','o');
             }
-            document.getElementById('status').innerText = "Đã Undo. Lượt bạn!";
+            document.getElementById('trang-thai').innerText = "Đã đi lại. Lượt bạn!";
+            document.getElementById('trang-thai').style.color = "var(--player)";
         }
 
-        function win() {
-            wins++; level++; updateUI(); saveRecord();
-            document.getElementById('status').innerText = "BẠN THẮNG!"; over = true;
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.7 } });
-            beep(523, 0.2); setTimeout(()=>beep(659, 0.2), 150);
+        function xuLyThang() {
+            thang++; cap_do++; capNhatGiaoDien(); luuKyLuc();
+            document.getElementById('trang-thai').innerText = "BẠN ĐÃ CHIẾN THẮNG!"; 
+            document.getElementById('trang-thai').style.color = "var(--player)";
+            ket_thuc = true;
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.7 }, colors: ['#4ade80', '#38bdf8', '#ffffff'] });
+            phatAm(523, 0.2); setTimeout(()=>phatAm(659, 0.2), 150);
         }
 
-        function updateUI() {
-            document.getElementById('win-count').innerText = wins;
-            document.getElementById('ai-level').innerText = level;
+        function capNhatGiaoDien() {
+            document.getElementById('so-tran-thang').innerText = thang;
+            document.getElementById('cap-do-ai').innerText = cap_do;
         }
 
-        function findAI() {
-            let b = -1, m = {r:7, c:7}, dw = 1.2 + (level * 0.4);
-            for(let r=0; r<S; r++) for(let c=0; c<S; c++) if(board[r][c].v === '') {
-                let s = score(r,c,'O') + (score(r,c,'X') * dw);
-                if(s > b) { b = s; m = {r,c}; }
+        function timNuocDiAI() {
+            let diem_tot_nhat = -1, nuoc_di = {r:7, c:7}, trong_so_thu = 1.3 + (cap_do * 0.4);
+            for(let r = 0; r < CO_BAN_CO; r++) for(let c = 0; c < CO_BAN_CO; c++) if(du lieu_ban_co[r][c].v === '') {
+                let s = tinhDiem(r,c,'O') + (tinhDiem(r,c,'X') * trong_so_thu);
+                if(s > diem_tot_nhat) { diem_tot_nhat = s; nuoc_di = {r,c}; }
             }
-            return m;
+            return nuoc_di;
         }
 
-        function score(r,c,p) {
-            let t = 0, ds = [[1,0],[0,1],[1,1],[1,-1]];
-            for(let [dr,dc] of ds) {
-                let n = 1 + cnt(r,c,dr,dc,p) + cnt(r,c,-dr,-dc,p);
-                if(n >= 5) t += 10000; else if(n === 4) t += 1000; else if(n === 3) t += 100;
+        function tinhDiem(r,c,p) {
+            let tong = 0, huong = [[1,0],[0,1],[1,1],[1,-1]];
+            for(let [dr,dc] of huong) {
+                let n = 1 + demLienTiep(r,c,dr,dc,p) + demLienTiep(r,c,-dr,-dc,p);
+                if(n >= 5) tong += 10000; else if(n === 4) tong += 1000; else if(n === 3) tong += 100;
             }
-            return t;
+            return tong;
         }
 
-        function cnt(r,c,dr,dc,p) {
+        function demLienTiep(r,c,dr,dc,p) {
             let n=0, nr=r+dr, nc=c+dc;
-            while(nr>=0 && nr<S && nc>=0 && nc<S && board[nr][nc].v === p) { n++; nr+=dr; nc+=dc; }
+            while(nr>=0 && nr<CO_BAN_CO && nc>=0 && nc<CO_BAN_CO && du lieu_ban_co[nr][nc].v === p) { n++; nr+=dr; nc+=dc; }
             return n;
         }
 
-        function check(r, c, p) {
-            const ds = [[1,0],[0,1],[1,1],[1,-1]];
-            for(let [dr,dc] of ds) {
-                let path = [[r,c]], nr=r+dr, nc=c+dc;
-                while(nr>=0 && nr<S && nc>=0 && nc<S && board[nr][nc].v === p) { path.push([nr,nc]); nr+=dr; nc+=dc; }
+        function kiemTraThang(r, c, p) {
+            const huong = [[1,0],[0,1],[1,1],[1,-1]];
+            for(let [dr,dc] of huong) {
+                let duong_thang = [[r,c]], nr=r+dr, nc=c+dc;
+                while(nr>=0 && nr<CO_BAN_CO && nc>=0 && nc<CO_BAN_CO && du lieu_ban_co[nr][nc].v === p) { duong_thang.push([nr,nc]); nr+=dr; nc+=dc; }
                 nr=r-dr; nc=c-dc;
-                while(nr>=0 && nr<S && nc>=0 && nc<S && board[nr][nc].v === p) { path.push([nr,nc]); nr-=dr; nc-=dc; }
-                if(path.length >= 5) {
-                    path.forEach(pos => board[pos[0]][pos[1]].el.classList.add('win-glow')); return true;
+                while(nr>=0 && nr<CO_BAN_CO && nc>=0 && nc<CO_BAN_CO && du lieu_ban_co[nr][nc].v === p) { duong_thang.push([nr,nc]); nr-=dr; nc-=dc; }
+                if(duong_thang.length >= 5) {
+                    duong_thang.forEach(pos => du lieu_ban_co[pos[0]][pos[1]].el.classList.add('thang-cuoc')); return true;
                 }
             }
             return false;
         }
 
-        loadRecord(); init();
+        taiKyLuc(); khoiTao();
     </script>
 </body>
 </html>
