@@ -3,9 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cờ Caro Cao Cấp - Giao diện Gốc</title>
+    <title>Caro Master Pro</title>
     
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%231e293b%22/><text y=%22.9em%22 font-size=%2270%22 x=%2210%22 fill=%22%2338bdf8%22>X</text></svg>">
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/566/566295.png">
+    
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/566/566295.png">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Caro Master">
+
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
@@ -16,12 +23,12 @@
             --accent-color: #38bdf8;
             --player-color: #22c55e;
             --ai-color: #ef4444;
-            --cell-color: #1e293b; /* Màu ô cờ sáng rõ */
+            --cell-color: #1e293b; 
             --border-color: #334155;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             display: flex;
@@ -34,7 +41,7 @@
         }
 
         .header { text-align: center; margin-top: 10px; }
-        h1 { font-size: 1.8rem; margin: 10px 0; color: var(--accent-color); text-transform: uppercase; letter-spacing: 2px; }
+        h1 { font-size: 1.8rem; margin: 10px 0; color: var(--accent-color); text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
 
         .chi-so {
             display: flex; gap: 15px; margin-bottom: 15px;
@@ -47,13 +54,13 @@
         .nhan { font-size: 0.7rem; opacity: 0.8; text-transform: uppercase; }
         .gia-tri { font-size: 1.3rem; font-weight: bold; color: var(--accent-color); display: block; }
 
-        .ky-luc { font-size: 0.8rem; color: #94a3b8; margin-bottom: 10px; font-style: italic; }
+        .ky-luc { font-size: 0.8rem; color: #94a3b8; margin-bottom: 10px; font-style: italic; background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 20px; }
 
-        #status { margin-bottom: 15px; font-weight: bold; color: var(--player-color); height: 20px; }
+        #status { margin-bottom: 15px; font-weight: bold; color: var(--player-color); height: 20px; font-size: 0.95rem; }
 
         .ban-co-khung {
             padding: 6px; background: var(--border-color);
-            border-radius: 10px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
             width: 95vw; max-width: 450px; aspect-ratio: 1/1;
         }
 
@@ -65,41 +72,43 @@
         .cell {
             background-color: var(--cell-color); display: flex;
             justify-content: center; align-items: center;
-            font-size: clamp(14px, 4vw, 24px); font-weight: bold;
+            font-size: clamp(14px, 4vw, 24px); font-weight: 900;
             cursor: pointer; transition: all 0.2s ease; border-radius: 2px;
         }
-        .cell:hover { background-color: #334155; }
-        .cell.x { color: var(--player-color); }
-        .cell.o { color: var(--ai-color); }
+        .cell:active { background-color: #334155; transform: scale(0.95); }
+        .cell.x { color: var(--player-color); text-shadow: 0 0 5px rgba(34, 197, 94, 0.5); }
+        .cell.o { color: var(--ai-color); text-shadow: 0 0 5px rgba(239, 68, 68, 0.5); }
 
-        .bang-nut { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; justify-content: center; }
+        .bang-nut { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 25px; justify-content: center; width: 100%; max-width: 450px; }
         .btn {
-            padding: 10px 20px; border: none; border-radius: 10px;
-            font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.9rem;
+            flex: 1; min-width: 100px;
+            padding: 12px 10px; border: none; border-radius: 12px;
+            font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.85rem;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
         }
         .btn-undo { background: #475569; color: white; }
         .btn-new { background: var(--accent-color); color: #0f172a; }
-        .btn-reset { background: #991b1b; color: white; }
+        .btn-reset { background: #7f1d1d; color: white; }
         .btn:active { transform: scale(0.9); }
 
-        .win-cell { background-color: #0ea5e9 !important; color: white !important; animation: winPulse 0.5s infinite; }
-        @keyframes winPulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .win-cell { background-color: var(--player-color) !important; color: white !important; animation: winPulse 0.5s infinite; }
+        @keyframes winPulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>CARO PRO</h1>
+        <h1>CARO MASTER</h1>
     </div>
 
     <div class="chi-so">
-        <div class="o-chi-so"><span class="nhan">Độ khó</span><span id="ai-level" class="gia-tri">1</span></div>
+        <div class="o-chi-so"><span class="nhan">Cấp độ</span><span id="ai-level" class="gia-tri">1</span></div>
         <div class="o-chi-so"><span class="nhan">Trận thắng</span><span id="win-count" class="gia-tri">0</span></div>
     </div>
 
-    <div id="best-record" class="ky-luc">Kỷ lục: Cấp 1 - 0 thắng</div>
+    <div id="best-record" class="ky-luc">Đang tải kỷ lục...</div>
 
-    <div id="status">Lượt của bạn (X)</div>
+    <div id="status">Sẵn sàng chơi!</div>
 
     <div class="ban-co-khung">
         <div id="board"></div>
@@ -125,7 +134,7 @@
         function loadRecord() {
             const bl = localStorage.getItem('caro_bl') || 1;
             const bw = localStorage.getItem('caro_bw') || 0;
-            document.getElementById('best-record').innerText = `Kỷ lục cao nhất: Cấp ${bl} — ${bw} trận thắng`;
+            document.getElementById('best-record').innerText = `🏆 Kỷ lục cao nhất: Cấp ${bl} — ${bw} trận thắng`;
         }
 
         function saveRecord() {
@@ -164,7 +173,6 @@
         function handleMove(r, c) {
             if (board[r][c].val !== '' || gameOver) return;
 
-            // Người chơi
             makeMove(r, c, 'X');
             history.push({r, c, p: 'X'});
             beep(600, 0.05);
@@ -173,9 +181,8 @@
                 victory(); return;
             }
 
-            // AI
             gameOver = true;
-            document.getElementById('status').innerText = "AI đang nghĩ...";
+            document.getElementById('status').innerText = "AI đang suy nghĩ...";
             document.getElementById('status').style.color = "var(--ai-color)";
             
             setTimeout(() => {
@@ -208,7 +215,7 @@
                 board[last.r][last.c].el.innerText = '';
                 board[last.r][last.c].el.classList.remove('x', 'o');
             }
-            document.getElementById('status').innerText = "Đã đi lại. Lượt bạn (X)";
+            document.getElementById('status').innerText = "Đã lùi bước đi. Lượt bạn!";
         }
 
         function victory() {
@@ -217,7 +224,7 @@
             document.getElementById('ai-level').innerText = level;
             document.getElementById('status').innerText = "BẠN ĐÃ CHIẾN THẮNG!";
             saveRecord();
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.7 } });
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.7 }, colors: ['#22c55e', '#38bdf8', '#ffffff'] });
             beep(523, 0.2); setTimeout(()=>beep(659, 0.2), 150);
             gameOver = true;
         }
